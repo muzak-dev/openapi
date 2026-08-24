@@ -161,6 +161,20 @@
   .tnum { font-variant-numeric: tabular-nums; }
   .eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-3); }
 
+  /* A category, and a tag beside it: the sidebar's group rows. Monospaced and
+     uppercase at 10px, they sit between the section eyebrow above them and the
+     paths below, which are monospaced too but neither uppercase nor spaced. */
+  .nav-group {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 400;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--fg-2);
+    transition: color .13s ease, font-weight .13s ease;
+  }
+  /* The group holding the open endpoint is the one the reader is inside, so it
+     carries the full-strength text colour - bone on ink, near-black on paper -
+     and the weight to match; every other group steps back to regular and a
+     shade down. */
+  .nav-group.is-active { color: var(--fg); font-weight: 600; }
+
   /* Scrollbars */
   .scroll { scrollbar-width: thin; scrollbar-color: var(--scroll) transparent; }
   .scroll::-webkit-scrollbar { width: 9px; height: 9px; }
@@ -365,6 +379,24 @@
     font-family: var(--font-mono); font-size: 10px; padding: 1.5px 5px; border-radius: 4px;
     border: 1px solid var(--border); background: var(--elev); color: var(--fg-3); line-height: 1.5;
   }
+  /* The shortcut hint inside the send button. It sits on the orange fill
+     rather than on a surface, so it is tinted with the fill itself: a wash of
+     white in the dark theme, of black in the light one, and text a shade under
+     the label beside it so the hint reads as secondary without going muddy. */
+  .kbd-on-primary {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: rgba(255, 255, 255, .05);
+    color: rgba(255, 255, 255, .88);
+    font-family: var(--font-mono); font-size: 10px; line-height: 1.5;
+  }
+  :root:not(.dark) .kbd-on-primary {
+    border-color: rgba(0, 0, 0, .10);
+    background: rgba(0, 0, 0, .05);
+    color: rgba(255, 255, 255, .92);
+  }
+
   .card { border: 1px solid var(--border); border-radius: 7px; background: var(--bg); }
   .overlay { position: fixed; inset: 0; background: rgba(8, 9, 11, .55); backdrop-filter: blur(3px); z-index: 60; }
   :root:not(.dark) .overlay { background: rgba(24, 28, 35, .28); }

@@ -15,7 +15,7 @@ const {
   send, addHeader, resetRequest, resetBody, formatBody, params,
 } = useTryIt()
 
-const modKey = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘' : 'Ctrl'
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 
 defineShortcuts({
   meta_enter: () => { if (ep.value) send() },
@@ -155,7 +155,11 @@ defineShortcuts({
           <Icon v-if="reqState === 'loading'" name="i-lucide-loader-circle" :size="14" class="spin" />
           <Icon v-else name="i-lucide-send" :size="13" />
           <span>{{ reqState === 'loading' ? 'Sending…' : 'Send request' }}</span>
-          <span class="kbd ml-1 hidden sm:inline">{{ modKey }} ↵</span>
+          <span class="kbd-on-primary ml-1 hidden sm:inline-flex">
+            <Icon v-if="isMac" name="material-symbols:keyboard-command-key" :size="11" />
+            <span v-else>Ctrl</span>
+            <Icon name="uil:enter" :size="11" />
+          </span>
         </button>
       </div>
 

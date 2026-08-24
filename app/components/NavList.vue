@@ -68,6 +68,10 @@ function isTagCollapsed(tag: string) {
 function toggleTag(tag: string) {
   collapsedTags.value[tag] = !isTagCollapsed(tag)
 }
+/** Whether the open endpoint is one of a group's, which is what marks it. */
+function holdsCurrent(group: OperationGroup) {
+  return page.value.type === 'endpoint' && group.operations.some(op => op.id === page.value.id)
+}
 function goTo(target: { type: 'endpoint' | 'schema', id: string }) {
   page.value = target
   mobileNav.value = false
@@ -86,7 +90,7 @@ function goTo(target: { type: 'endpoint' | 'schema', id: string }) {
       <div v-for="grp in filteredGroups" :key="grp.tag" class="mb-1">
         <button class="nav-row !py-1" :aria-expanded="!isCollapsed(grp.tag)" @click="toggleGroup(grp.tag)">
           <span class="sn-caret !ml-0" :class="{ open: !isCollapsed(grp.tag) }"><Icon name="i-lucide-chevron-right" :size="12" /></span>
-          <span class="text-[12.5px] font-medium truncate">{{ grp.tag }}</span>
+          <span class="nav-group truncate" :class="{ 'is-active': holdsCurrent(grp) }">{{ grp.tag }}</span>
           <span class="ml-auto text-[10.5px] text-dim tnum">{{ grp.operations.length }}</span>
         </button>
         <div v-show="!isCollapsed(grp.tag)" class="mt-0.5">
@@ -115,7 +119,7 @@ function goTo(target: { type: 'endpoint' | 'schema', id: string }) {
         >
           <span class="sn-caret !ml-0" :class="{ open: !isTagCollapsed(tag.tag) }"><Icon name="i-lucide-chevron-right" :size="12" /></span>
           <Icon name="i-lucide-tag" :size="11" class="shrink-0 text-dim" />
-          <span class="text-[12.5px] font-medium truncate">{{ tag.tag }}</span>
+          <span class="nav-group truncate" :class="{ 'is-active': holdsCurrent(tag) }">{{ tag.tag }}</span>
           <span class="ml-auto text-[10.5px] text-dim tnum">{{ tag.operations.length }}</span>
         </button>
         <div v-show="!isTagCollapsed(tag.tag)" class="mt-0.5">

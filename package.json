@@ -30,6 +30,8 @@
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.124",
-    "@iconify-json/material-icon-theme": "^1.2.70"
+    "@iconify-json/material-icon-theme": "^1.2.70",
+    "@iconify-json/material-symbols": "^1.2.89",
+    "@iconify-json/uil": "^1.2.3"
   }
 }
