@@ -6,6 +6,10 @@
 .cache
 dist
 
+# ui/dist is the exception: it is the build output vendored into the Go module
+# that ships this dashboard, so it is committed on purpose.
+!ui/dist
+
 # Node dependencies
 node_modules
 
