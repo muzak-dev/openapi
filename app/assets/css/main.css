@@ -1,6 +1,25 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+@theme static {
+  /* The brand ramp, built around muzak.dev's rust (#e2562a at 500, and the
+     darker #c4441c the light theme uses at 600). Nuxt UI's own components take
+     their primary colour from this, so a UInput's focus ring and a UButton's
+     fill are the same orange as the rest of the page rather than the
+     framework default. */
+  --color-rust-50: #fdf5f2;
+  --color-rust-100: #fbe7df;
+  --color-rust-200: #f7cab8;
+  --color-rust-300: #f0a587;
+  --color-rust-400: #e97b52;
+  --color-rust-500: #e2562a;
+  --color-rust-600: #c4441c;
+  --color-rust-700: #a03718;
+  --color-rust-800: #832f16;
+  --color-rust-900: #6b2914;
+  --color-rust-950: #3a1409;
+}
+
 /*
  * Design tokens and component classes ported from the reference docs.html —
  * this is the source of truth for the visual design, not a reinterpretation.
@@ -26,49 +45,93 @@
 }
 
 :root {
-  --bg: #ffffff;
-  --elev: #fbfbfc;
-  --sunken: #f4f5f7;
-  --code: #f7f8fa;
-  --border: #e6e8ec;
-  --border-2: #d5d9e0;
-  --fg: #0c1015;
-  --fg-2: #586170;
-  --fg-3: #8b93a0;
-  --acc: #544ad8;
-  --acc-soft: rgba(84, 74, 216, .075);
-  --acc-line: rgba(84, 74, 216, .32);
-  --get: #1f6feb; --post: #0f7a48; --put: #9a5800; --patch: #7040c8; --del: #c22f1d; --head: #586170;
-  --ok: #0f7a48; --warn: #9a5800; --err: #c22f1d; --info: #1f6feb;
-  --ok-soft: rgba(15, 122, 72, .09); --warn-soft: rgba(154, 88, 0, .09); --err-soft: rgba(194, 47, 29, .09); --info-soft: rgba(31, 111, 235, .09);
-  --c-str: #0a7345; --c-num: #9a5800; --c-kw: #7040c8; --c-cmt: #98a0ad; --c-key: #1f6feb; --c-pun: #6b7480;
-  --ring: rgba(84, 74, 216, .45);
-  --shadow-sm: 0 1px 2px rgba(12, 16, 21, .05);
-  --shadow-lg: 0 1px 3px rgba(12, 16, 21, .06), 0 16px 40px -18px rgba(12, 16, 21, .28);
-  --scroll: #cfd4dc;
+  /* Warm paper, the daylight side of the same material world: iron, rust,
+     brass and patina over bone rather than over ink. */
+  --bg: #faf8f4;
+  --elev: #f4f0e9;
+  --sunken: #ece7de;
+  --code: #f6f2ec;
+  --border: #e0d9cd;
+  --border-2: #cec4b3;
+  --fg: #1a1714;
+  --fg-2: #5c554b;
+  --fg-3: #8a8175;
+  --acc: #c4441c;
+  --acc-soft: rgba(196, 68, 28, .08);
+  --acc-line: rgba(196, 68, 28, .34);
+  --get: #3f8d7c; --post: #c4441c; --put: #9a7420; --patch: #7d5ba6; --del: #b3342a; --head: #8a8175;
+  --ok: #3f8d7c; --warn: #9a7420; --err: #b3342a; --info: #4a7c96;
+  --ok-soft: rgba(63, 141, 124, .10); --warn-soft: rgba(154, 116, 32, .10); --err-soft: rgba(179, 52, 42, .10); --info-soft: rgba(74, 124, 150, .10);
+  --c-str: #3f8d7c; --c-num: #9a7420; --c-kw: #c4441c; --c-cmt: #9c9385; --c-key: #4a7c96; --c-pun: #7a7264;
+  --ring: rgba(196, 68, 28, .42);
+  --shadow-sm: 0 1px 2px rgba(26, 23, 20, .06);
+  --shadow-lg: 0 1px 3px rgba(26, 23, 20, .07), 0 16px 40px -18px rgba(26, 23, 20, .3);
+  --scroll: #cec4b3;
 }
 
 .dark {
-  --bg: #08090b;
-  --elev: #0d0f13;
-  --sunken: #0b0d10;
-  --code: #0c0f13;
-  --border: #1a1e25;
-  --border-2: #272d37;
-  --fg: #e6eaf0;
-  --fg-2: #949daa;
-  --fg-3: #666f7c;
-  --acc: #8b8cf7;
-  --acc-soft: rgba(139, 140, 247, .10);
-  --acc-line: rgba(139, 140, 247, .38);
-  --get: #5ea9ff; --post: #4ade80; --put: #fbbf24; --patch: #c4a6ff; --del: #ff7b72; --head: #949daa;
-  --ok: #4ade80; --warn: #fbbf24; --err: #ff7b72; --info: #5ea9ff;
-  --ok-soft: rgba(74, 222, 128, .10); --warn-soft: rgba(251, 191, 36, .10); --err-soft: rgba(255, 123, 114, .10); --info-soft: rgba(94, 169, 255, .10);
-  --c-str: #7fe0a7; --c-num: #ffca7a; --c-kw: #c4a6ff; --c-cmt: #5b6472; --c-key: #84b6ff; --c-pun: #8a92a0;
-  --ring: rgba(139, 140, 247, .5);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
-  --shadow-lg: 0 1px 2px rgba(0, 0, 0, .5), 0 20px 48px -22px rgba(0, 0, 0, .85);
-  --scroll: #252b34;
+  /* muzak.dev's own tokens: ink, line, bone, ash, faint, rust, patina, brass.
+     The site is dark, so this side of the palette is the site's, verbatim. */
+  --bg: #0e0c0a;
+  --elev: #131210;
+  --sunken: #1a1714;
+  --code: #131210;
+  --border: #272320;
+  --border-2: #36302a;
+  --fg: #e9e4da;
+  --fg-2: #958e82;
+  --fg-3: #6a645b;
+  --acc: #e2562a;
+  --acc-soft: rgba(226, 86, 42, .12);
+  --acc-line: rgba(226, 86, 42, .38);
+  --get: #6fb3a3; --post: #e2562a; --put: #c9a24b; --patch: #a98cc4; --del: #e0645c; --head: #958e82;
+  --ok: #6fb3a3; --warn: #c9a24b; --err: #e0645c; --info: #7fa8c4;
+  --ok-soft: rgba(111, 179, 163, .12); --warn-soft: rgba(201, 162, 75, .12); --err-soft: rgba(224, 100, 92, .12); --info-soft: rgba(127, 168, 196, .12);
+  --c-str: #6fb3a3; --c-num: #c9a24b; --c-kw: #e2562a; --c-cmt: #6a645b; --c-key: #cbbfae; --c-pun: #958e82;
+  --ring: rgba(226, 86, 42, .5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-lg: 0 1px 2px rgba(0, 0, 0, .55), 0 20px 48px -22px rgba(0, 0, 0, .9);
+  --scroll: #36302a;
+}
+
+/*
+ * Nuxt UI's semantic tokens, mapped onto this page's palette.
+ *
+ * Its components read --ui-primary, --ui-bg and the rest; the module's own
+ * colour layer is not emitted in this build, so a UInput would otherwise
+ * reference variables nothing defines and render with no ring and no
+ * background. Pointing them at the tokens above is also what keeps a Nuxt UI
+ * control looking like the hand-written controls beside it: one palette, one
+ * source, in both themes.
+ */
+:root,
+.dark {
+  --ui-primary: var(--acc);
+  --ui-secondary: var(--info);
+  --ui-success: var(--ok);
+  --ui-info: var(--info);
+  --ui-warning: var(--warn);
+  --ui-error: var(--err);
+
+  --ui-bg: var(--bg);
+  --ui-bg-muted: var(--sunken);
+  --ui-bg-elevated: var(--elev);
+  --ui-bg-accented: var(--sunken);
+  --ui-bg-inverted: var(--fg);
+
+  --ui-text-dimmed: var(--fg-3);
+  --ui-text-muted: var(--fg-3);
+  --ui-text-toned: var(--fg-2);
+  --ui-text: var(--fg-2);
+  --ui-text-highlighted: var(--fg);
+  --ui-text-inverted: var(--bg);
+
+  --ui-border: var(--border);
+  --ui-border-muted: var(--border);
+  --ui-border-accented: var(--border-2);
+  --ui-border-inverted: var(--fg);
+
+  --ui-radius: 5px;
 }
 
 @layer base {
@@ -164,9 +227,19 @@
     transition: background .13s ease, color .13s ease, border-color .13s ease;
   }
   .btn:hover { background: var(--sunken); color: var(--fg); border-color: var(--border-2); }
-  .btn-primary { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 550; }
-  .btn-primary:hover { background: color-mix(in srgb, var(--acc) 86%, #000); border-color: color-mix(in srgb, var(--acc) 86%, #000); color: #fff; }
-  .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--acc) 92%, #fff) 0%, var(--acc) 100%);
+    border-color: color-mix(in srgb, var(--acc) 78%, #000);
+    color: #fff; font-weight: 600; letter-spacing: .01em;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 1px 2px rgba(0, 0, 0, .25);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(180deg, var(--acc) 0%, color-mix(in srgb, var(--acc) 84%, #000) 100%);
+    border-color: color-mix(in srgb, var(--acc) 70%, #000);
+    color: #fff;
+  }
+  .btn-primary:active { transform: translateY(.5px); box-shadow: 0 1px 2px rgba(0, 0, 0, .3) inset; }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   .btn-ghost { border-color: transparent; background: transparent; }
   .btn-ghost:hover { background: var(--elev); border-color: var(--border); }
   .icon-btn {

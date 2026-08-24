@@ -46,15 +46,24 @@ function toggleTheme() {
     </div>
 
     <div class="flex-1 flex justify-center px-1 min-w-0">
-      <button
-        class="w-full max-w-[420px] h-[30px] flex items-center gap-2 px-2.5 rounded-md border border-line bg-elev text-dim hover:border-line2 hover:text-mut transition-colors"
+      <!-- Reads as the same control as the two real search fields, but opens
+           the palette rather than filtering in place: it is readonly, so a
+           click or a focus hands over to the dialog that does the searching. -->
+      <UInput
+        icon="i-lucide-search"
+        size="md"
+        variant="outline"
+        placeholder="Search documentation…"
         aria-label="Search documentation"
+        readonly
+        :ui="{ root: 'w-full max-w-[420px]', base: 'cursor-pointer' }"
         @click="paletteOpen = true"
+        @focus="paletteOpen = true"
       >
-        <Icon name="i-lucide-search" :size="13" />
-        <span class="text-[12px] truncate">Search documentation<span class="hidden sm:inline">…</span></span>
-        <span class="ml-auto kbd hidden sm:inline">{{ modKey }} K</span>
-      </button>
+        <template #trailing>
+          <span class="kbd hidden sm:inline">{{ modKey }} K</span>
+        </template>
+      </UInput>
     </div>
 
     <div class="flex items-center gap-0.5 pl-1 border-l border-line ml-1">

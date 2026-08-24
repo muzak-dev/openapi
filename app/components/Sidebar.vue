@@ -9,19 +9,27 @@ const { copy, copied } = useCopyFeedback()
 <template>
   <aside v-show="sidebarOpen" class="hidden lg:flex w-[272px] shrink-0 flex-col border-r border-line bg-app">
     <div class="p-2.5 pb-2 border-b border-line">
-      <div class="relative">
-        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-dim pointer-events-none"><Icon name="i-lucide-search" :size="12" /></span>
-        <input
-          v-model="sidebarQuery"
-          class="inp !pl-[28px] !font-sans !text-[12px]"
-          placeholder="Filter endpoints…"
-          aria-label="Filter endpoints and schemas"
-          @keydown.esc="sidebarQuery = ''"
-        >
-        <button v-if="sidebarQuery" class="absolute right-1.5 top-1/2 -translate-y-1/2 icon-btn !w-5 !h-5" aria-label="Clear filter" @click="sidebarQuery = ''">
-          <Icon name="i-lucide-x" :size="11" />
-        </button>
-      </div>
+      <UInput
+        v-model="sidebarQuery"
+        icon="i-lucide-search"
+        size="md"
+        variant="outline"
+        placeholder="Filter endpoints…"
+        aria-label="Filter endpoints and schemas"
+        :ui="{ root: 'w-full' }"
+        @keydown.esc="sidebarQuery = ''"
+      >
+        <template v-if="sidebarQuery" #trailing>
+          <UButton
+            color="neutral"
+            variant="link"
+            size="sm"
+            icon="i-lucide-circle-x"
+            aria-label="Clear filter"
+            @click="sidebarQuery = ''"
+          />
+        </template>
+      </UInput>
     </div>
 
     <NavList />
