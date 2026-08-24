@@ -18,6 +18,10 @@ export function useDocsState() {
     server: usePersisted('server', 0),
     sidebarOpen: usePersisted('sidebarOpen', true),
     collapsedGroups: usePersisted<Record<string, boolean>>('collapsedGroups', {}),
+    // The tag accordion is the secondary view, so it starts closed: an entry
+    // is open only where this says false. Reversed from collapsedGroups, whose
+    // categories start open because they are the table of contents.
+    collapsedTags: usePersisted<Record<string, boolean>>('collapsedTags', {}),
     lang: usePersisted('lang', 'curl'),
     // Credentials go in sessionStorage, not localStorage: they still survive a
     // reload while the tab is open, but they don't sit on disk in plaintext

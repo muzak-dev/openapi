@@ -276,7 +276,16 @@ export interface OperationEntry {
   id: string
   path: string
   verb: HttpVerb
-  /** Every group the operation belongs to; it is listed under each of them. */
+  /**
+   * The one group the operation is filed under in the reference tree.
+   *
+   * A Muzak route inherits its router's tags before its own, so the first tag
+   * is the group the route was registered in - the category - and any further
+   * tag is a label that cuts across categories. The tree shows an operation
+   * once, under this; the tag index shows it under each of `tags`.
+   */
+  category: string
+  /** Every tag the operation carries, the category included. */
   tags: string[]
   summary: string
   description: string
@@ -334,6 +343,7 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
         id: operationAnchor(path, verb),
         path,
         verb,
+        category: op.tags?.[0] || 'default',
         tags: op.tags?.length ? op.tags : ['default'],
         summary: op.summary || `${verb.toUpperCase()} ${path}`,
         description: op.description || '',
@@ -350,14 +360,38 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
   return out
 }
 
+/**
+ * The reference tree: every operation once, under its category.
+ *
+ * A category appears exactly once and an operation appears in exactly one of
+ * them, so the tree is a table of contents rather than a cross-reference. What
+ * an operation's other tags are for is [deriveTagIndex].
+ */
 export function groupOperations(doc: OpenApiDocument | null | undefined, operations: OperationEntry[]): OperationGroup[] {
+  return collect(doc, operations, op => [op.category])
+}
+
+/**
+ * The tag index: every tag, with every operation carrying it.
+ *
+ * This is where an operation appears more than once, and that is the point - a
+ * route tagged "admin" and "audit" is listed under both, which is what putting
+ * two tags on it asked for. The tree above stays free of the repetition.
+ */
+export function deriveTagIndex(doc: OpenApiDocument | null | undefined, operations: OperationEntry[]): OperationGroup[] {
+  return collect(doc, operations, op => op.tags)
+}
+
+/** Groups operations by the tags a function picks out of each, sorted by name. */
+function collect(
+  doc: OpenApiDocument | null | undefined,
+  operations: OperationEntry[],
+  tagsOf: (op: OperationEntry) => string[],
+): OperationGroup[] {
   const order: string[] = []
   const byTag = new Map<string, OperationEntry[]>()
   for (const op of operations) {
-    // An operation carrying several tags appears under each of them: a route
-    // tagged "admin" and "audit" is in both groups, which is what the tags
-    // promised when they were put on it.
-    for (const tag of op.tags) {
+    for (const tag of tagsOf(op)) {
       if (!byTag.has(tag)) { byTag.set(tag, []); order.push(tag) }
       byTag.get(tag)!.push(op)
     }

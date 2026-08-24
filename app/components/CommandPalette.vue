@@ -111,20 +111,26 @@ watch(paletteQuery, () => { paletteIndex.value = 0 })
       aria-modal="true"
       aria-label="Search documentation"
     >
-      <div class="flex items-center gap-2.5 px-3.5 h-[46px] border-b border-line">
-        <span class="text-dim"><Icon name="i-lucide-search" :size="15" /></span>
-        <input
+      <div class="p-2 border-b border-line">
+        <UInput
           ref="paletteInput"
           v-model="paletteQuery"
-          class="flex-1 bg-transparent text-[13.5px] text-fg placeholder:text-dim"
+          icon="i-lucide-search"
+          size="lg"
+          variant="none"
           placeholder="Search endpoints, schemas, actions…"
           aria-label="Search query"
+          autofocus
+          :ui="{ root: 'w-full', base: 'text-[13.5px]' }"
           @keydown.down.prevent="moveResult(1)"
           @keydown.up.prevent="moveResult(-1)"
           @keydown.enter.prevent="runResult()"
           @keydown.esc="paletteOpen = false"
         >
-        <span class="kbd">esc</span>
+          <template #trailing>
+            <span class="kbd">esc</span>
+          </template>
+        </UInput>
       </div>
       <div class="max-h-[52vh] overflow-y-auto scroll py-2">
         <div v-if="!results.length" class="px-4 py-10 text-center">
