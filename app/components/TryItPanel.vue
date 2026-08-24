@@ -6,6 +6,7 @@ const props = defineProps<{
 }>()
 
 const { spec } = useOpenApiDoc()
+const { servers } = useServers()
 const { page, server, mobileTry, tryPulse, authModal } = useDocsState()
 const { authed, authLabel, maskedToken } = useAuth()
 const {
@@ -46,7 +47,7 @@ defineShortcuts({
         <label class="eyebrow block mb-1.5">Server</label>
         <div class="relative">
           <select v-model.number="server" class="inp !font-sans !text-[12px]" aria-label="Server">
-            <option v-for="(sv, i) in spec?.servers || []" :key="i" :value="i">{{ sv.description || sv.url }} — {{ sv.url }}</option>
+            <option v-for="(sv, i) in servers" :key="i" :value="i">{{ sv.description || sv.url }} — {{ sv.url }}</option>
           </select>
           <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-dim"><Icon name="i-lucide-chevron-down" :size="12" /></span>
         </div>

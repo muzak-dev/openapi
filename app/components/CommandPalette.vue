@@ -48,8 +48,8 @@ const results = computed<Row[]>(() => {
   const rows: Omit<Row, 'index'>[] = []
 
   for (const o of operations.value) {
-    const sc = Math.max(fuzzy(q, o.path), fuzzy(q, o.summary), fuzzy(q, `${o.verb} ${o.path}`), fuzzy(q, o.tag))
-    if (sc) rows.push({ group: 'Endpoints', kind: 'endpoint', key: `e${o.id}`, title: o.path, sub: `${o.summary} · ${o.tag}`, method: o.verb.toUpperCase(), score: sc, to: { type: 'endpoint', id: o.id } })
+    const sc = Math.max(fuzzy(q, o.path), fuzzy(q, o.summary), fuzzy(q, `${o.verb} ${o.path}`), fuzzy(q, o.tags.join(' ')))
+    if (sc) rows.push({ group: 'Endpoints', kind: 'endpoint', key: `e${o.id}`, title: o.path, sub: `${o.summary} · ${o.tags.join(', ')}`, method: o.verb.toUpperCase(), score: sc, to: { type: 'endpoint', id: o.id } })
   }
   for (const n of schemaNames.value) {
     const sc = fuzzy(q, n)

@@ -50,7 +50,7 @@ export function useTryIt() {
   const history = useState<HistoryEntry[]>('docs-history', () => [])
 
   const ep = computed(() => (page.value.type === 'endpoint' ? opById(page.value.id) : null))
-  const baseUrl = computed(() => spec.value?.servers?.[server.value]?.url || '')
+  const { baseUrl } = useServers()
 
   const bodyError = computed(() => {
     if (!ep.value?.requestBody || !req.value.body.trim()) return ''

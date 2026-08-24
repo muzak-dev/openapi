@@ -18,15 +18,11 @@ export const LANGUAGES: CodeLanguage[] = [
   { id: 'curl', label: 'cURL', icon: 'material-icon-theme:http' },
   { id: 'python', label: 'Python', icon: 'material-icon-theme:python' },
   { id: 'httpx', label: 'Python (Async)', icon: 'material-icon-theme:python' },
-  { id: 'fetch', label: 'JavaScript', icon: 'material-icon-theme:javascript' },
-  { id: 'node', label: 'Node.js', icon: 'material-icon-theme:nodejs' },
-  { id: 'ts', label: 'TypeScript', icon: 'material-icon-theme:typescript' },
   { id: 'go', label: 'Go', icon: 'material-icon-theme:go' },
   { id: 'csharp', label: 'C#', icon: 'material-icon-theme:csharp' },
   { id: 'dotnet', label: '.NET', icon: 'material-icon-theme:csharp' },
   { id: 'java', label: 'Java', icon: 'material-icon-theme:java' },
   { id: 'php', label: 'PHP', icon: 'material-icon-theme:php' },
-  { id: 'ruby', label: 'Ruby', icon: 'material-icon-theme:ruby' },
   { id: 'rust', label: 'Rust', icon: 'material-icon-theme:rust' },
 ]
 
@@ -98,25 +94,6 @@ export const generators: Record<string, Generator> = {
     )
     return out.join('\n')
   },
-  fetch(r) {
-    const init = [`  method: ${strLit(r.method)},`, `  headers: ${reindent(jsObj(r.headers, 2), 2)},`]
-    if (r.body) init.push(`  body: JSON.stringify(${reindent(r.body, 2)}),`)
-    return ['const response = await fetch(', `  ${strLit(r.url)},`, '  {', init.map(l => `  ${l}`).join('\n'), '  }', ');', '',
-      'if (!response.ok) throw new Error(`HTTP ${response.status}`);', '', 'const data = await response.json();', 'console.log(data);'].join('\n')
-  },
-  node(r) {
-    const init = [`  method: ${strLit(r.method)},`, `  headers: ${reindent(jsObj(r.headers, 2), 2)},`]
-    if (r.body) init.push(`  body: JSON.stringify(${reindent(r.body, 2)}),`)
-    return ['// Node.js 18+ — global fetch, no dependencies', `const response = await fetch(${strLit(r.url)}, {`,
-      init.join('\n'), '});', '', 'const data = await response.json();', 'console.log(data);'].join('\n')
-  },
-  ts(r) {
-    const init = [`  method: ${strLit(r.method)},`, `  headers: ${reindent(jsObj(r.headers, 2), 2)},`]
-    if (r.body) init.push(`  body: JSON.stringify(${reindent(r.body, 2)}),`)
-    return ['interface ApiResponse<T> {', '  status: string;', '  code: number;', '  data: T;', '  timestamp: string;', '}', '',
-      `const response = await fetch(${strLit(r.url)}, {`, init.join('\n'), '});', '',
-      'const result = (await response.json()) as ApiResponse<unknown>;', 'console.log(result.data);'].join('\n')
-  },
   go(r) {
     const out = ['package main', '', 'import (', '\t"fmt"', '\t"io"', '\t"net/http"']
     if (r.body) out.push('\t"strings"')
@@ -176,15 +153,6 @@ export const generators: Record<string, Generator> = {
       `    CURLOPT_CUSTOMREQUEST => '${r.method}',`, '    CURLOPT_HTTPHEADER => [', headers.replace(/^ {4}/gm, '        '), '    ],']
     if (r.body) out.push(`    CURLOPT_POSTFIELDS => '${r.body.replace(/\n\s*/g, '')}',`)
     out.push(']);', '', '$response = curl_exec($ch);', 'curl_close($ch);', '', 'echo $response;')
-    return out.join('\n')
-  },
-  ruby(r) {
-    const out = ['require \'net/http\'', 'require \'json\'', '', `uri = URI('${r.url}')`,
-      `request = Net::HTTP::${r.method.charAt(0)}${r.method.slice(1).toLowerCase()}.new(uri)`]
-    for (const [k, v] of Object.entries(r.headers)) out.push(`request['${k}'] = '${v}'`)
-    if (r.body) out.push(`request.body = ${reindent(r.body, 0).replace(/": /g, '" => ')}.to_json`)
-    out.push('', 'response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|', '  http.request(request)', 'end', '',
-      'puts response.code', 'puts JSON.parse(response.body)')
     return out.join('\n')
   },
   rust(r) {

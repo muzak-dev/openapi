@@ -27,6 +27,17 @@ export function useOpenApiSpec() {
       : config.public.specUrl
   })
 
+  /**
+   * The document's URL, resolved against the page's own origin.
+   *
+   * The path is resolved here rather than handed to `$fetch` as-is because
+   * Nuxt gives `$fetch` the application's baseURL, and the dashboard is
+   * mounted under one: served at /docs, a plain `/openapi.json` would be
+   * requested as /docs/openapi.json. The document sits at an absolute path on
+   * this origin, so that is what is asked for.
+   */
+  const specRequestUrl = computed(() => new URL(specUrl.value, pageOrigin).toString())
+
   const spec = useState<OpenApiDocument | null>('openapi-spec', () => null)
   const pending = useState('openapi-spec-pending', () => true)
   const error = useState<string | null>('openapi-spec-error', () => null)
@@ -35,7 +46,7 @@ export function useOpenApiSpec() {
     pending.value = true
     error.value = null
     try {
-      const result = await $fetch(specUrl.value, {
+      const result = await $fetch(specRequestUrl.value, {
         headers: { Accept: 'application/json' },
       })
       if (!isOpenApiDocument(result)) {

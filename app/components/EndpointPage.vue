@@ -12,7 +12,7 @@ const { builtUrl, builtHeaders, req } = useTryIt()
 
 const op = computed(() => operations.value.find(o => o.id === props.operationId) || null)
 
-const baseUrl = computed(() => spec.value?.servers?.[server.value]?.url || '')
+const { baseUrl } = useServers()
 
 watch(op, () => { bodyView.value = 'schema' })
 
@@ -86,7 +86,7 @@ const siblings = computed(() => {
     <nav class="flex items-center gap-1.5 text-[11.5px] text-dim mb-5" aria-label="Breadcrumb">
       <span>API Reference</span>
       <Icon name="i-lucide-chevron-right" :size="11" />
-      <span>{{ op.tag }}</span>
+      <span>{{ op.tags.join(', ') }}</span>
       <Icon name="i-lucide-chevron-right" :size="11" />
       <span class="text-mut">{{ op.summary }}</span>
     </nav>

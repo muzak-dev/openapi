@@ -84,7 +84,7 @@ export interface OpenApiDocument {
     securitySchemes?: Record<string, SecurityScheme>
   }
   tags?: { name: string, description?: string }[]
-  servers?: { url: string, description?: string }[]
+  servers?: OpenApiServer[]
   security?: Record<string, string[]>[]
 }
 
@@ -258,18 +258,26 @@ export function operationAnchor(path: string, verb: string): string {
   return `op-${verb}-${path.replace(/[^a-zA-Z0-9]+/g, '-')}`
 }
 
+export interface OpenApiServer {
+  url: string
+  description?: string
+}
+
 export interface OperationResponse {
   code: string
   name: string | null
   description: string
   schema: JSONSchema | null
+  /** The media type the body carries, or null for a response with no body. */
+  contentType: string | null
 }
 
 export interface OperationEntry {
   id: string
   path: string
   verb: HttpVerb
-  tag: string
+  /** Every group the operation belongs to; it is listed under each of them. */
+  tags: string[]
   summary: string
   description: string
   deprecated: boolean
@@ -306,12 +314,16 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
       if (!op) continue
       const body = firstJsonContent(op.requestBody?.content)
       const responses: OperationResponse[] = Object.entries(op.responses || {}).map(([code, r]) => {
-        const json = firstJsonContent(r.content)
+        // Not every response is JSON: a route returning HTML is described as
+        // text/html, a server-sent events route as text/event-stream, and a
+        // route that answers with nothing carries no content at all.
+        const content = firstJsonContent(r.content)
         return {
           code,
-          name: json ? refName(json.media.schema) : null,
+          name: content ? refName(content.media.schema) : null,
           description: r.description || '',
-          schema: json?.media.schema || null,
+          schema: content?.media.schema || null,
+          contentType: content?.contentType || null,
         }
       }).sort((a, b) => {
         if (a.code === 'default') return 1
@@ -322,7 +334,7 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
         id: operationAnchor(path, verb),
         path,
         verb,
-        tag: op.tags?.[0] || 'default',
+        tags: op.tags?.length ? op.tags : ['default'],
         summary: op.summary || `${verb.toUpperCase()} ${path}`,
         description: op.description || '',
         deprecated: !!op.deprecated,
@@ -331,7 +343,7 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
         requestBody: body ? { contentType: body.contentType, required: !!op.requestBody?.required, schema: body.media.schema || {} } : null,
         responses,
         security: (op.security || doc.security || []).flatMap(s => Object.keys(s)),
-        searchText: `${verb} ${path} ${op.summary || ''} ${op.operationId || ''}`.toLowerCase(),
+        searchText: `${verb} ${path} ${op.summary || ''} ${op.operationId || ''} ${(op.tags || []).join(' ')}`.toLowerCase(),
       })
     }
   }
@@ -342,8 +354,13 @@ export function groupOperations(doc: OpenApiDocument | null | undefined, operati
   const order: string[] = []
   const byTag = new Map<string, OperationEntry[]>()
   for (const op of operations) {
-    if (!byTag.has(op.tag)) { byTag.set(op.tag, []); order.push(op.tag) }
-    byTag.get(op.tag)!.push(op)
+    // An operation carrying several tags appears under each of them: a route
+    // tagged "admin" and "audit" is in both groups, which is what the tags
+    // promised when they were put on it.
+    for (const tag of op.tags) {
+      if (!byTag.has(tag)) { byTag.set(tag, []); order.push(tag) }
+      byTag.get(tag)!.push(op)
+    }
   }
   const descriptions = new Map((doc?.tags || []).map(t => [t.name, t.description || '']))
   return order.sort((a, b) => a.localeCompare(b)).map(tag => ({

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { spec } = useOpenApiDoc()
+const { servers } = useServers()
 const { server, sidebarOpen, mobileNav, authModal, paletteOpen } = useDocsState()
 const { authed } = useAuth()
 const colorMode = useColorMode()
@@ -35,10 +36,10 @@ function toggleTheme() {
       <span v-if="spec?.info.version" class="chip mono hidden md:inline-block">v{{ spec.info.version }}</span>
     </div>
 
-    <div v-if="spec?.servers?.length" class="hidden md:flex items-center gap-1.5 pl-1">
+    <div v-if="servers.length > 1" class="hidden md:flex items-center gap-1.5 pl-1">
       <div class="relative">
         <select v-model.number="server" class="inp !h-[26px] !text-[11px] !pl-2 !pr-6 !bg-elev !font-sans" aria-label="Environment">
-          <option v-for="(sv, i) in spec.servers" :key="i" :value="i">{{ sv.description || sv.url }}</option>
+          <option v-for="(sv, i) in servers" :key="i" :value="i">{{ sv.description || sv.url }}</option>
         </select>
         <span class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-dim"><Icon name="i-lucide-chevron-down" :size="11" /></span>
       </div>

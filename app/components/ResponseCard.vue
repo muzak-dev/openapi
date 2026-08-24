@@ -19,8 +19,8 @@ function setTab(t: string) { responseTabs.value[key.value] = t }
 const openapiSnippet = computed(() => {
   const r = props.response
   return pretty({
-    [r.code]: r.schema
-      ? { description: r.description, content: { 'application/json': { schema: r.schema } } }
+    [r.code]: r.schema && r.contentType
+      ? { description: r.description, content: { [r.contentType]: { schema: r.schema } } }
       : { description: r.description },
     ...(r.schema ? { components: { schemas: componentsFor(props.doc, [r.schema]) } } : {}),
   })
@@ -32,6 +32,10 @@ const openapiSnippet = computed(() => {
     <button class="w-full flex items-center gap-3 px-3 h-[42px] text-left hover:bg-elev transition-colors" :aria-expanded="isOpen" @click="toggle">
       <span class="st w-[46px] shrink-0" :data-s="String(response.code)[0]">{{ response.code }}</span>
       <code v-if="response.name" class="mono text-[12px] font-medium shrink-0">{{ response.name }}</code>
+      <code
+        v-else-if="response.contentType && !response.contentType.includes('json')"
+        class="mono text-[12px] font-medium shrink-0"
+      >{{ response.contentType }}</code>
       <span class="text-[12px] text-dim truncate hidden sm:block">{{ response.description }}</span>
       <span class="sn-caret ml-auto" :class="{ open: isOpen }"><Icon name="i-lucide-chevron-right" :size="13" /></span>
     </button>
@@ -59,7 +63,7 @@ const openapiSnippet = computed(() => {
 
         <CodeViewer v-else-if="activeTab === 'JSON'" lang="json" label="JSON" :code="response.schema ? pretty(exampleFor(doc, response.schema)) : '// no content'" />
 
-        <CodeViewer v-else lang="json" label="OpenAPI 3.0.3" :code="openapiSnippet" :max-lines="30" />
+        <CodeViewer v-else lang="json" label="OpenAPI 3.1" :code="openapiSnippet" :max-lines="30" />
       </div>
     </div>
   </div>
