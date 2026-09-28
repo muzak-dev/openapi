@@ -8,6 +8,7 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
