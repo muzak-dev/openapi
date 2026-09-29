@@ -1,3 +1,4 @@
+import { resolveSpecUrl, specResponseTrusted } from '~/utils/origin'
 import type { OpenApiDocument } from '~/utils/openapi'
 
 /**
@@ -14,18 +15,17 @@ import type { OpenApiDocument } from '~/utils/openapi'
  * `useAuth` auto-attaches any credential the visitor previously saved for
  * this origin, an unrestricted override turns one clicked link into silent
  * exfiltration of that visitor's real API key to the attacker's server.
+ *
+ * Checking the address is not enough on its own, because a same-origin
+ * address can redirect: the response is checked for where it finally came
+ * from as well.
  */
 export function useOpenApiSpec() {
   const config = useRuntimeConfig()
   const route = useRoute()
   const pageOrigin = useRequestURL().origin
 
-  const specUrl = computed(() => {
-    const fromQuery = route.query.spec
-    return typeof fromQuery === 'string' && fromQuery.length > 0 && isSameOrigin(fromQuery, pageOrigin)
-      ? fromQuery
-      : config.public.specUrl
-  })
+  const specUrl = computed(() => resolveSpecUrl(route.query.spec, config.public.specUrl, pageOrigin))
 
   /**
    * The document's URL, resolved against the page's own origin.
@@ -46,9 +46,13 @@ export function useOpenApiSpec() {
     pending.value = true
     error.value = null
     try {
-      const result = await $fetch(specRequestUrl.value, {
+      const response = await $fetch.raw(specRequestUrl.value, {
         headers: { Accept: 'application/json' },
       })
+      if (!specResponseTrusted(response, pageOrigin)) {
+        throw new Error('the OpenAPI document was redirected to another origin, so it was not loaded')
+      }
+      const result = response._data
       if (!isOpenApiDocument(result)) {
         throw new Error('the response was not a valid OpenAPI document')
       }
@@ -62,15 +66,6 @@ export function useOpenApiSpec() {
   }
 
   return { spec, pending, error, specUrl, load }
-}
-
-/** Reports whether `value` — relative or absolute — resolves to the same origin as `pageOrigin`. This is the only form of `?spec=` override trusted; a cross-origin value falls back to the configured default instead. */
-function isSameOrigin(value: string, pageOrigin: string): boolean {
-  try {
-    return new URL(value, pageOrigin).origin === pageOrigin
-  } catch {
-    return false
-  }
 }
 
 /** Guards against a non-JSON fallback response (an HTML error page, an SPA shell) silently masquerading as success. */

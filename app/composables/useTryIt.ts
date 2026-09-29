@@ -1,3 +1,4 @@
+import { requestUrl } from '~/utils/origin'
 import { exampleFor, paramsOf, pretty, type OpenApiDocument, type OperationEntry } from '~/utils/openapi'
 
 export interface ReqHeader { k: string, v: string }
@@ -51,6 +52,7 @@ export function useTryIt() {
 
   const ep = computed(() => (page.value.type === 'endpoint' ? opById(page.value.id) : null))
   const { baseUrl } = useServers()
+  const pageOrigin = useRequestURL().origin
 
   const bodyError = computed(() => {
     if (!ep.value?.requestBody || !req.value.body.trim()) return ''
@@ -68,12 +70,10 @@ export function useTryIt() {
     const headers: Record<string, string> = {}
     if (!op || !baseUrl.value) return { url: '', headers, urlObj: null as URL | null }
     const path = op.path.replace(/\{(\w+)\}/g, (_, k) => encodeURIComponent(req.value.path[k] || `{${k}}`))
-    let urlObj: URL
-    try {
-      urlObj = new URL(baseUrl.value.replace(/\/$/, '') + path)
-    } catch {
-      return { url: '', headers, urlObj: null as URL | null }
-    }
+    // The one place a request's destination is decided, and so where the saved
+    // credential goes: on the selected server's origin, whatever the path says.
+    const urlObj = requestUrl(baseUrl.value, path, pageOrigin)
+    if (!urlObj) return { url: '', headers, urlObj: null as URL | null }
     for (const p of paramsOf(op, 'query')) {
       const v = req.value.query[p.name]
       if (req.value.queryOn[p.name] && v !== '' && v !== undefined) urlObj.searchParams.set(p.name, v)
