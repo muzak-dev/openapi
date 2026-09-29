@@ -17,10 +17,13 @@ export function useDocsState() {
     page: usePersisted<PageRef>('page', { type: 'endpoint', id: '' }),
     server: usePersisted('server', 0),
     sidebarOpen: usePersisted('sidebarOpen', true),
-    collapsedGroups: usePersisted<Record<string, boolean>>('collapsedGroups', {}),
+    // Open or closed, per category, only where the reader chose: a category
+    // with no entry follows the default for a tree of its size (see
+    // AUTO_COLLAPSE_ABOVE), so this stays as small as the choices made.
+    openCategories: usePersisted<Record<string, boolean>>('openCategories', {}),
     // The tag accordion is the secondary view, so it starts closed: an entry
-    // is open only where this says false. Reversed from collapsedGroups, whose
-    // categories start open because they are the table of contents.
+    // is open only where this says false. Reversed from openCategories, whose
+    // groups open by default when the tree is small enough to read whole.
     collapsedTags: usePersisted<Record<string, boolean>>('collapsedTags', {}),
     lang: usePersisted('lang', 'curl'),
     // Credentials go in sessionStorage, not localStorage: they still survive a

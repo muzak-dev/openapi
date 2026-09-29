@@ -1,10 +1,13 @@
 import { authOptionsFor, deriveOperations, deriveTagIndex, groupOperations } from '~/utils/openapi'
 
-/** The loaded spec plus everything derived from it: operations, tag groups, schema names, auth options. */
+/** The loaded spec plus everything derived from it: operations, category groups, the tag index, schema names, auth options. */
 export function useOpenApiDoc() {
   const { spec, pending, error, load, specUrl } = useOpenApiSpec()
 
   const operations = computed(() => deriveOperations(spec.value))
+  // The reference tree: one group per category (an operation's `x-category`,
+  // else its first tag), in registration order. The group's `tag` field holds
+  // the category name; an operation's `label` is its title or, without one, its path.
   const groups = computed(() => groupOperations(spec.value, operations.value))
   // Every tag, with every operation carrying it. A category appears in both
   // this and `groups`; a label that cuts across categories only here.

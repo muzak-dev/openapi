@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { pretty } from '~/utils/openapi'
+import { fuzzy, operationScore, operationSubtitle } from '~/utils/sidebar'
 
 const { spec, operations, schemaNames } = useOpenApiDoc()
 const { page, sidebarOpen, authModal, paletteOpen, paletteQuery, paletteIndex } = useDocsState()
@@ -15,20 +16,6 @@ defineShortcuts({
   '/': () => openPalette(),
 })
 
-function fuzzy(needle: string, hay: unknown): number {
-  if (!needle) return 1
-  const n = needle.toLowerCase()
-  const h = String(hay ?? '').toLowerCase()
-  const direct = h.indexOf(n)
-  if (direct >= 0) return 1000 - direct
-  let i = 0
-  let score = 0
-  for (let j = 0; j < h.length && i < n.length; j++) {
-    if (h[j] === n[i]) { i++; score++ }
-  }
-  return i === n.length ? score : 0
-}
-
 interface Row {
   group: string
   kind: 'endpoint' | 'schema' | 'action'
@@ -36,6 +23,8 @@ interface Row {
   title: string
   sub: string
   method?: string
+  /** The row's first line is a human title, not a path, so it is not set in monospace. */
+  titled?: boolean
   icon?: string
   score: number
   to?: { type: 'endpoint' | 'schema', id: string }
@@ -48,8 +37,10 @@ const results = computed<Row[]>(() => {
   const rows: Omit<Row, 'index'>[] = []
 
   for (const o of operations.value) {
-    const sc = Math.max(fuzzy(q, o.path), fuzzy(q, o.summary), fuzzy(q, `${o.verb} ${o.path}`), fuzzy(q, o.tags.join(' ')))
-    if (sc) rows.push({ group: 'Endpoints', kind: 'endpoint', key: `e${o.id}`, title: o.path, sub: `${o.summary} · ${o.tags.join(', ')}`, method: o.verb.toUpperCase(), score: sc, to: { type: 'endpoint', id: o.id } })
+    // Whatever names an endpoint in the tree finds it here: its title, path,
+    // method, category and tags.
+    const sc = operationScore(q, o)
+    if (sc) rows.push({ group: 'Endpoints', kind: 'endpoint', key: `e${o.id}`, title: o.label, titled: !!o.title, sub: operationSubtitle(o), method: o.verb.toUpperCase(), score: sc, to: { type: 'endpoint', id: o.id } })
   }
   for (const n of schemaNames.value) {
     const sc = fuzzy(q, n)
@@ -118,7 +109,7 @@ watch(paletteQuery, () => { paletteIndex.value = 0 })
           icon="i-lucide-search"
           size="lg"
           variant="none"
-          placeholder="Search endpoints, schemas, actions…"
+          placeholder="Search endpoints, categories, schemas, actions…"
           aria-label="Search query"
           autofocus
           :ui="{ root: 'w-full', base: 'text-[13.5px]' }"
@@ -135,7 +126,7 @@ watch(paletteQuery, () => { paletteIndex.value = 0 })
       <div class="max-h-[52vh] overflow-y-auto scroll py-2">
         <div v-if="!results.length" class="px-4 py-10 text-center">
           <p class="text-[12.5px] text-mut">Nothing matches "{{ paletteQuery }}"</p>
-          <p class="text-[11.5px] text-dim mt-1">Try an endpoint path, a schema name, or "auth".</p>
+          <p class="text-[11.5px] text-dim mt-1">Try an endpoint title or path, a category, a schema name, or "auth".</p>
         </div>
         <template v-for="grp in groups" :key="grp.label">
           <p class="eyebrow px-4 pt-2 pb-1">{{ grp.label }}</p>
@@ -149,7 +140,7 @@ watch(paletteQuery, () => { paletteIndex.value = 0 })
             <span v-if="item.kind === 'endpoint'" class="mth w-[38px] text-right shrink-0" :data-m="item.method">{{ item.method }}</span>
             <span v-else class="w-[38px] flex justify-end text-dim shrink-0"><Icon :name="item.icon!" :size="13" /></span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate" :class="item.kind === 'action' ? 'text-[12.5px]' : 'mono text-[12px]'">{{ item.title }}</span>
+              <span class="block truncate" :class="item.kind === 'action' || item.titled ? 'text-[12.5px]' : 'mono text-[12px]'">{{ item.title }}</span>
               <span v-if="item.sub" class="block text-[11px] text-dim truncate">{{ item.sub }}</span>
             </span>
             <span v-if="item.index === paletteIndex" class="kbd shrink-0">↵</span>

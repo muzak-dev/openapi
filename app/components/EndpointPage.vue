@@ -21,6 +21,20 @@ function prettyPath(path: string): string {
   return escaped.replace(/\{(\w+)\}/g, '<span style="color:var(--acc)">{$1}</span>')
 }
 
+// A title takes the heading, so a summary the document wrote in addition would
+// otherwise appear nowhere on the page. Without one, the summary is the default
+// "GET /path", which the method and path beneath already say.
+const summaryBesideTitle = computed(() => {
+  const o = op.value
+  if (!o?.title || o.summary === o.title || o.summary === `${o.verb.toUpperCase()} ${o.path}`) return ''
+  return o.summary
+})
+
+// The category is in the breadcrumb, so the tags shown as labels are the ones
+// that say something else: those beside it, or all of them when an x-category
+// put the operation somewhere its tags do not name.
+const otherTags = computed(() => (op.value?.tags || []).filter(t => t !== op.value?.category))
+
 const idempotent = computed(() => !!op.value && ['get', 'put', 'delete'].includes(op.value.verb))
 
 const securityLabel = computed(() => {
@@ -86,13 +100,17 @@ const siblings = computed(() => {
     <nav class="flex items-center gap-1.5 text-[11.5px] text-dim mb-5" aria-label="Breadcrumb">
       <span>API Reference</span>
       <Icon name="i-lucide-chevron-right" :size="11" />
-      <span>{{ op.tags.join(', ') }}</span>
+      <span>{{ op.category }}</span>
       <Icon name="i-lucide-chevron-right" :size="11" />
-      <span class="text-mut">{{ op.summary }}</span>
+      <span class="text-mut">{{ op.title || op.summary }}</span>
     </nav>
 
     <header>
-      <h1 class="text-[22px] font-semibold tracking-[-.02em] leading-tight">{{ op.summary }}</h1>
+      <h1 class="text-[22px] font-semibold tracking-[-.02em] leading-tight">{{ op.title || op.summary }}</h1>
+      <p v-if="summaryBesideTitle" class="prose-p mt-1 max-w-[68ch]">{{ summaryBesideTitle }}</p>
+      <div v-if="otherTags.length" class="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Tags">
+        <span v-for="t in otherTags" :key="t" class="chip inline-flex items-center gap-1"><Icon name="i-lucide-tag" :size="10" /> {{ t }}</span>
+      </div>
       <p v-if="op.description" class="prose-p mt-2 max-w-[68ch]">{{ op.description }}</p>
 
       <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -207,14 +225,14 @@ const siblings = computed(() => {
         <span class="text-[11px] text-dim">Previous</span>
         <span class="flex items-center gap-2 mt-1">
           <span class="mth" :data-m="siblings.prev.verb.toUpperCase()">{{ siblings.prev.verb.toUpperCase() }}</span>
-          <span class="mono text-[12px] truncate">{{ siblings.prev.path }}</span>
+          <span class="text-[12px] truncate" :class="{ mono: !siblings.prev.title }" :title="siblings.prev.path">{{ siblings.prev.label }}</span>
         </span>
       </button><span v-else />
       <button v-if="siblings.next" class="card p-3 text-right hover:border-line2 transition-colors" @click="page = { type: 'endpoint', id: siblings.next.id }">
         <span class="text-[11px] text-dim">Next</span>
         <span class="flex items-center justify-end gap-2 mt-1">
           <span class="mth" :data-m="siblings.next.verb.toUpperCase()">{{ siblings.next.verb.toUpperCase() }}</span>
-          <span class="mono text-[12px] truncate">{{ siblings.next.path }}</span>
+          <span class="text-[12px] truncate" :class="{ mono: !siblings.next.title }" :title="siblings.next.path">{{ siblings.next.label }}</span>
         </span>
       </button>
     </nav>

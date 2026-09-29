@@ -14,7 +14,7 @@ const { copy, copied } = useCopyFeedback()
         icon="i-lucide-search"
         size="md"
         variant="outline"
-        placeholder="Filter endpoints…"
+        placeholder="Filter by title, category, path…"
         aria-label="Filter endpoints and schemas"
         :ui="{ root: 'w-full' }"
         @keydown.esc="sidebarQuery = ''"

@@ -1,0 +1,408 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Category and title fixture",
+    "version": "1.0.0",
+    "description": "Routers grouped by x-category, some routes carrying an x-title. Copy to public/openapi.json for `pnpm dev`."
+  },
+  "x-categories": [
+    "Accounts",
+    "Billing",
+    "Webhooks",
+    "Reports"
+  ],
+  "tags": [
+    {
+      "name": "billing",
+      "description": "Money in and out."
+    },
+    {
+      "name": "audit",
+      "description": "Routes an auditor reads."
+    }
+  ],
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/v1/invoices": {
+      "get": {
+        "operationId": "listInvoices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing"
+        ],
+        "x-category": "Billing",
+        "x-title": "List Invoices"
+      },
+      "post": {
+        "operationId": "createInvoice",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing"
+        ],
+        "x-category": "Billing",
+        "x-title": "Issue Invoice",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Invoice"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invoices/{id}": {
+      "get": {
+        "operationId": "getInvoice",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Fetch an invoice",
+        "tags": [
+          "billing"
+        ],
+        "x-category": "Billing"
+      }
+    },
+    "/v1/invoices/{id}/refund": {
+      "post": {
+        "operationId": "refundInvoice",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing",
+          "audit"
+        ],
+        "x-category": "Billing",
+        "x-title": "Refund Invoice",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Invoice"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/revenue": {
+      "get": {
+        "operationId": "revenueReport",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "reports"
+        ],
+        "x-category": "Reports",
+        "x-title": "Monthly Revenue"
+      }
+    },
+    "/v1/reports/signups": {
+      "get": {
+        "operationId": "signupsReport",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "reports"
+        ],
+        "x-category": "Reports"
+      }
+    },
+    "/v1/subscriptions": {
+      "get": {
+        "operationId": "listSubscriptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing"
+        ],
+        "x-category": "Billing",
+        "x-title": "List Subscriptions"
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "operationId": "listUsers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ],
+        "x-category": "Accounts",
+        "x-title": "List Users"
+      },
+      "post": {
+        "operationId": "createUser",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ],
+        "x-category": "Accounts",
+        "x-title": "Create User",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "operationId": "getUser",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Return one user with their profile.",
+        "tags": [
+          "accounts",
+          "admin"
+        ],
+        "x-category": "Accounts",
+        "x-title": "Fetch User Profile"
+      },
+      "delete": {
+        "operationId": "deleteUser",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "accounts",
+          "admin"
+        ],
+        "x-category": "Accounts",
+        "x-title": "Delete User"
+      }
+    },
+    "/v1/version": {
+      "get": {
+        "operationId": "version",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/webhooks": {
+      "get": {
+        "operationId": "listWebhooks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "webhooks"
+        ],
+        "x-category": "Webhooks",
+        "x-title": "List Webhook Endpoints"
+      },
+      "post": {
+        "operationId": "createWebhook",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "webhooks"
+        ],
+        "x-category": "Webhooks",
+        "x-title": "Register Webhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "required": [
+          "id",
+          "email"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Invoice": {
+        "type": "object",
+        "required": [
+          "id",
+          "amount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      }
+    }
+  }
+}

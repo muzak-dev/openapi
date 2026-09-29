@@ -53,6 +53,14 @@ export interface OpenApiOperation {
   description?: string
   deprecated?: boolean
   tags?: string[]
+  /**
+   * The category the operation is filed under in the reference tree. The
+   * framework writes one per router; many routers may share one. Anything but a
+   * string is ignored, see [textOf].
+   */
+  'x-category'?: unknown
+  /** A human title for the operation, shown in place of its path in the tree. */
+  'x-title'?: unknown
   security?: Record<string, string[]>[]
   parameters?: OpenApiParameter[]
   requestBody?: {
@@ -84,6 +92,12 @@ export interface OpenApiDocument {
     securitySchemes?: Record<string, SecurityScheme>
   }
   tags?: { name: string, description?: string }[]
+  /**
+   * The categories in the order the application registered them. The framework
+   * writes it because `paths` is sorted and so cannot say. Read with
+   * [categoryOrder].
+   */
+  'x-categories'?: unknown
   servers?: OpenApiServer[]
   security?: Record<string, string[]>[]
 }
@@ -279,12 +293,26 @@ export interface OperationEntry {
   /**
    * The one group the operation is filed under in the reference tree.
    *
-   * A Muzak route inherits its router's tags before its own, so the first tag
-   * is the group the route was registered in - the category - and any further
-   * tag is a label that cuts across categories. The tree shows an operation
-   * once, under this; the tag index shows it under each of `tags`.
+   * It is the operation's `x-category`, which the framework writes one of per
+   * router. Without one it is the first tag: a Muzak route inherits its
+   * router's tags before its own, so the first tag is the group the route was
+   * registered in, and any further tag is a label that cuts across categories.
+   * Failing both it is 'default'. The tree shows an operation once, under this;
+   * the tag index shows it under each of `tags`.
    */
   category: string
+  /** Whether `category` came from an `x-category` rather than from a tag. */
+  categoryDeclared: boolean
+  /** The operation's `x-title`, or '' when it has none. */
+  title: string
+  /**
+   * What names the operation in a list: its `title`, or its path when it has
+   * none. A title replaces the path in the tree and the palette; the path then
+   * moves to the tooltip and the secondary line, so it is never lost.
+   */
+  label: string
+  /** Where the operation sits in the document as written, paths and verbs in order. */
+  order: number
   /** Every tag the operation carries, the category included. */
   tags: string[]
   summary: string
@@ -304,6 +332,26 @@ export interface OperationGroup {
   operations: OperationEntry[]
 }
 
+/**
+ * A vendor extension read as display text: the trimmed string, or '' for
+ * anything else.
+ *
+ * The document is untrusted input and an extension can hold any JSON, so a
+ * number, an object or an array is treated as absent rather than coerced into
+ * "[object Object]". The result is only ever rendered as text, never as markup.
+ */
+export function textOf(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+/** The category an operation is filed under, and whether the document said so. */
+export function categoryOf(op: Pick<OpenApiOperation, 'x-category' | 'tags'>): { category: string, declared: boolean } {
+  const declared = textOf(op['x-category'])
+  if (declared) return { category: declared, declared: true }
+  const tag = Array.isArray(op.tags) ? textOf(op.tags[0]) : ''
+  return { category: tag || 'default', declared: false }
+}
+
 function firstJsonContent(content?: Record<string, OpenApiMediaType>): { contentType: string, media: OpenApiMediaType } | null {
   if (!content) return null
   const jsonKey = Object.keys(content).find(k => k.includes('json'))
@@ -316,11 +364,22 @@ function firstJsonContent(content?: Record<string, OpenApiMediaType>): { content
 export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[] {
   if (!doc?.paths) return []
   const out: OperationEntry[] = []
+  // The document's own order, before the list below is sorted by path: it is
+  // what puts categories in the order the author registered their routers.
+  const written = new Map<string, number>()
+  let position = 0
+  for (const path of Object.keys(doc.paths)) {
+    for (const verb of HTTP_VERBS) {
+      if (doc.paths[path]?.[verb]) written.set(`${verb} ${path}`, position++)
+    }
+  }
   for (const path of Object.keys(doc.paths).sort()) {
     const item = doc.paths[path]
     for (const verb of HTTP_VERBS) {
       const op = item?.[verb]
       if (!op) continue
+      const { category, declared } = categoryOf(op)
+      const title = textOf(op['x-title'])
       const body = firstJsonContent(op.requestBody?.content)
       const responses: OperationResponse[] = Object.entries(op.responses || {}).map(([code, r]) => {
         // Not every response is JSON: a route returning HTML is described as
@@ -343,7 +402,11 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
         id: operationAnchor(path, verb),
         path,
         verb,
-        category: op.tags?.[0] || 'default',
+        category,
+        categoryDeclared: declared,
+        title,
+        label: title || path,
+        order: written.get(`${verb} ${path}`) ?? 0,
         tags: op.tags?.length ? op.tags : ['default'],
         summary: op.summary || `${verb.toUpperCase()} ${path}`,
         description: op.description || '',
@@ -353,11 +416,29 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
         requestBody: body ? { contentType: body.contentType, required: !!op.requestBody?.required, schema: body.media.schema || {} } : null,
         responses,
         security: (op.security || doc.security || []).flatMap(s => Object.keys(s)),
-        searchText: `${verb} ${path} ${op.summary || ''} ${op.operationId || ''} ${(op.tags || []).join(' ')}`.toLowerCase(),
+        searchText: `${verb} ${path} ${title} ${category} ${op.summary || ''} ${op.operationId || ''} ${(op.tags || []).join(' ')}`.toLowerCase(),
       })
     }
   }
   return out
+}
+
+/**
+ * The categories the document lists in its `x-categories`, in that order.
+ *
+ * Anything that is not a non-blank string is dropped, as is a name already
+ * seen, and a value that is not an array is no list at all: the document is
+ * untrusted, and the names are only ever rendered as text.
+ */
+export function categoryOrder(doc: OpenApiDocument | null | undefined): string[] {
+  const listed = doc?.['x-categories']
+  if (!Array.isArray(listed)) return []
+  const seen = new Set<string>()
+  for (const entry of listed) {
+    const name = textOf(entry)
+    if (name) seen.add(name)
+  }
+  return [...seen]
 }
 
 /**
@@ -366,9 +447,31 @@ export function deriveOperations(doc?: OpenApiDocument | null): OperationEntry[]
  * A category appears exactly once and an operation appears in exactly one of
  * them, so the tree is a table of contents rather than a cross-reference. What
  * an operation's other tags are for is [deriveTagIndex].
+ *
+ * The order is the order the application registered its routers in, as far as
+ * the document can say. `x-categories` says it outright, and its categories come
+ * first, in its order. Any other category follows in the order the document
+ * first mentions it - which is all a document without the list can offer, and
+ * is how one that only declares `x-category` on its operations is ordered. A
+ * document with neither is grouped by tag as it always was, and tags have no
+ * order of their own, so those are sorted by name.
  */
 export function groupOperations(doc: OpenApiDocument | null | undefined, operations: OperationEntry[]): OperationGroup[] {
-  return collect(doc, operations, op => [op.category])
+  const groups = collect(doc, operations, op => [op.category])
+  const listed = categoryOrder(doc)
+  if (!listed.length && !operations.some(op => op.categoryDeclared)) return groups
+  const rank = new Map(listed.map((name, i) => [name, i]))
+  const first = new Map<string, number>()
+  for (const op of operations) {
+    first.set(op.category, Math.min(first.get(op.category) ?? Infinity, op.order))
+  }
+  const listedRank = (name: string) => rank.get(name) ?? Infinity
+  return groups.sort((a, b) => {
+    const byList = listedRank(a.tag) - listedRank(b.tag)
+    // Infinity - Infinity is NaN: two unlisted categories tie on the list.
+    if (byList && !Number.isNaN(byList)) return byList
+    return (first.get(a.tag) ?? 0) - (first.get(b.tag) ?? 0)
+  })
 }
 
 /**
