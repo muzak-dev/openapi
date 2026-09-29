@@ -1,6 +1,8 @@
 // Per-language request snippet generators. Pure functions over a built
 // {method, url, headers, body} request — no knowledge of the OpenAPI doc.
 
+import { HTTP_VERBS, type HttpVerb } from './openapi.ts'
+
 export interface BuiltRequest {
   method: string
   url: string
@@ -111,9 +113,65 @@ const javaTextBlock = (s: string) => s.replace(/\\/g, '\\\\').replace(/"""/g, '"
 /** A C# verbatim string literal, where the only escape is a doubled quote. */
 const csVerbatim = (s: string) => `@"${s.replace(/"/g, '""')}"`
 
-/** A C# HttpMethod for a verb, by its named member when it is a plain word and by constructor otherwise. */
-const csMethod = (m: string) =>
-  /^[A-Za-z]+$/.test(m) ? `HttpMethod.${m.charAt(0).toUpperCase()}${m.slice(1).toLowerCase()}` : `new HttpMethod(${strLit(m)})`
+/**
+ * The request's verb, lower-cased, or an error when it is not one an OpenAPI
+ * path item can carry.
+ *
+ * The verb is the one value a generator writes as an identifier instead of
+ * inside a string literal (requests.post, client.post, HttpMethod.Post,
+ * reqwest's .post), so quoting cannot protect it: whatever it holds is read as
+ * code. openapi.ts only ever produces the verbs in HTTP_VERBS, so this refuses
+ * everything else at the generator itself rather than trusting every caller.
+ */
+const verbOf = (method: string): HttpVerb => {
+  const verb = String(method).toLowerCase()
+  if (!(HTTP_VERBS as string[]).includes(verb)) {
+    throw new Error(`cannot write a snippet for the HTTP method ${strLit(String(method))}: it is not an OpenAPI verb`)
+  }
+  return verb as HttpVerb
+}
+
+/** A C# HttpMethod for a verb, by its named member. */
+const csMethod = (m: string) => {
+  const verb = verbOf(m)
+  return `HttpMethod.${verb.charAt(0).toUpperCase()}${verb.slice(1)}`
+}
+
+/** A Python literal for a parsed JSON value, laid out as JSON.stringify(v, null, 2) would lay it out. */
+const pyValue = (v: unknown, depth = 0): string => {
+  const pad = '  '.repeat(depth + 1)
+  if (v === null) return 'None'
+  if (v === true) return 'True'
+  if (v === false) return 'False'
+  if (typeof v === 'number') return String(v)
+  if (typeof v === 'string') return strLit(v)
+  if (Array.isArray(v)) {
+    return v.length ? `[\n${v.map(x => `${pad}${pyValue(x, depth + 1)},`).join('\n')}\n${'  '.repeat(depth)}]` : '[]'
+  }
+  const entries = Object.entries(v as Record<string, unknown>)
+  return entries.length ? `{\n${entries.map(([k, x]) => `${pad}${strLit(k)}: ${pyValue(x, depth + 1)},`).join('\n')}\n${'  '.repeat(depth)}}` : '{}'
+}
+
+/**
+ * A request body as the Python the snippets pass it in. A JSON body becomes a
+ * Python literal, which is what `json=` takes; the true/false/null of JSON are
+ * not Python, and rewriting them in the text would also rewrite a string that
+ * happens to hold ": true". A body that is not JSON (the console lets a person
+ * type anything) is written as one string for `data=`, never as source.
+ */
+const pyBody = (body: string): { json: boolean, literal: string } => {
+  try {
+    return { json: true, literal: pyValue(JSON.parse(body)) }
+  } catch {
+    return { json: false, literal: strLit(body) }
+  }
+}
+
+/** The reqwest call that starts a request: a builder shortcut per verb, and request() for OPTIONS, which Client has no shortcut for. */
+const rustCall = (method: string, url: string) => {
+  const verb = verbOf(method)
+  return verb === 'options' ? `.request(reqwest::Method::OPTIONS, ${rustLit(url)})` : `.${verb}(${rustLit(url)})`
+}
 
 type Generator = (r: BuiltRequest) => string
 
@@ -126,8 +184,9 @@ export const generators: Record<string, Generator> = {
   },
   python(r) {
     const out = ['import requests', '', `url = ${strLit(r.url)}`, `headers = ${pyDict(r.headers, 0)}`]
-    if (r.body) out.push(`payload = ${reindent(r.body.replace(/: true/g, ': True').replace(/: false/g, ': False').replace(/: null/g, ': None'), 0)}`)
-    out.push('', `response = requests.${r.method.toLowerCase()}(${r.body ? '\n    url,\n    headers=headers,\n    json=payload,\n' : '\n    url,\n    headers=headers,\n'})`, '',
+    const body = r.body ? pyBody(r.body) : null
+    if (body) out.push(`payload = ${body.literal}`)
+    out.push('', `response = requests.${verbOf(r.method)}(${body ? `\n    url,\n    headers=headers,\n    ${body.json ? 'json' : 'data'}=payload,\n` : '\n    url,\n    headers=headers,\n'})`, '',
       'response.raise_for_status()', 'print(response.json())')
     return out.join('\n')
   },
@@ -138,11 +197,12 @@ export const generators: Record<string, Generator> = {
       'import asyncio', 'import httpx', '', '',
       'async def main() -> None:',
       '    async with httpx.AsyncClient() as client:',
-      `        response = await client.${r.method.toLowerCase()}(`,
+      `        response = await client.${verbOf(r.method)}(`,
       `            ${strLit(r.url)},`,
       `            headers=${pyDict(r.headers, 12)},`,
     ]
-    if (r.body) out.push(`            json=${reindent(r.body.replace(/: true/g, ': True').replace(/: false/g, ': False').replace(/: null/g, ': None'), 12)},`)
+    const body = r.body ? pyBody(r.body) : null
+    if (body) out.push(`            ${body.json ? 'json' : 'content'}=${reindent(body.literal, 12)},`)
     out.push(
       '        )', '',
       '        print(response.status_code)', '        print(response.json())', '', '',
@@ -215,7 +275,7 @@ export const generators: Record<string, Generator> = {
   },
   rust(r) {
     const out = ['use reqwest::blocking::Client;', '', 'fn main() -> Result<(), Box<dyn std::error::Error>> {',
-      '    let client = Client::new();', '', '    let response = client', `        .${r.method.toLowerCase()}(${rustLit(r.url)})`]
+      '    let client = Client::new();', '', '    let response = client', `        ${rustCall(r.method, r.url)}`]
     for (const [k, v] of Object.entries(r.headers)) out.push(`        .header(${rustLit(k)}, ${rustLit(v)})`)
     if (r.body) out.push(`        .body(${rustRaw(r.body.replace(/\n\s*/g, ''))})`)
     out.push('        .send()?;', '', '    println!("{}", response.status());', '    println!("{}", response.text()?);', '', '    Ok(())', '}')

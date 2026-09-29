@@ -179,3 +179,77 @@ test('a Rust raw string is delimited by more hashes than the body holds', () => 
   const rust = generators.rust!({ ...plain, body: '{"a":"\\"##x"}' })
   assert.ok(rust.includes('.body(r###"{"a":"\\"##x"}"###)'), rust)
 })
+
+// The verb is the one value a generator writes as an identifier rather than
+// inside a literal (requests.post, client.post, HttpMethod.Post, .post), so
+// quoting cannot protect it. It has to be one of the verbs an OpenAPI path item
+// can carry, or the generator refuses to write the snippet.
+const verbs = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+const badMethods = [
+  'GET"); import os; os.system("x"); ("',
+  'get(url); os.system("x"); requests.get',
+  'POST\nimport os',
+  'get.__class__',
+  'Get) { Process.Start("x"); } //',
+  'PROPFIND',
+  '',
+  ' get',
+  '__proto__',
+  'constructor',
+]
+
+for (const language of ['python', 'httpx', 'csharp', 'rust']) {
+  test(`${language}: a method that is not an OpenAPI verb is refused`, () => {
+    for (const method of badMethods) {
+      assert.throws(() => generators[language]!({ ...plain, method }), /method/i, `${language} wrote ${JSON.stringify(method)}`)
+    }
+  })
+
+  test(`${language}: every OpenAPI verb still yields a snippet, in either case`, () => {
+    for (const verb of verbs) {
+      for (const method of [verb, verb.toUpperCase()]) {
+        const code = generators[language]!({ ...plain, method })
+        assert.ok(code.length > 0, `${language} ${method}`)
+      }
+    }
+  })
+}
+
+test('the verb is written as the language spells it', () => {
+  assert.ok(generators.python!({ ...plain, method: 'DELETE' }).includes('requests.delete('))
+  assert.ok(generators.httpx!({ ...plain, method: 'PATCH' }).includes('client.patch('))
+  assert.ok(generators.csharp!({ ...plain, method: 'HEAD' }).includes('HttpMethod.Head'))
+  assert.ok(generators.rust!({ ...plain, method: 'PUT' }).includes('.put("https://api.example.com/users")'))
+  // reqwest's Client has no options(); the verb goes through request().
+  assert.ok(generators.rust!({ ...plain, method: 'OPTIONS' }).includes('.request(reqwest::Method::OPTIONS, "https://api.example.com/users")'))
+})
+
+// The body is written into the Python snippets as source. It comes from the
+// spec's examples and from what a person types into the console, so it is
+// parsed and written back as a Python literal instead of being pasted in.
+const pyBodies = [
+  '{"a": 1}); import os; os.system("x"); ({"b": 2}',
+  '{"a": "x"}\nimport os; os.system("x")',
+  '__import__("os").system("x")',
+  '{"a": "x: true"}',
+]
+
+for (const language of ['python', 'httpx']) {
+  test(`${language}: a body that is not JSON is written as a string, never as code`, () => {
+    for (const body of pyBodies.slice(0, 3)) {
+      const code = generators[language]!({ ...plain, body })
+      const { outside, open } = lexer({})(code)
+      assert.equal(open, false, `${language} left a literal open for ${JSON.stringify(body)}\n${code}`)
+      assert.ok(!outside.includes('os.system') && !outside.includes('__import__'),`${language} ran ${JSON.stringify(body)} as code\n${code}`)
+      assert.ok(code.includes(JSON.stringify(body)), `${language} did not quote ${JSON.stringify(body)}\n${code}`)
+    }
+  })
+
+  test(`${language}: a JSON body becomes a Python literal and its strings are left alone`, () => {
+    const code = generators[language]!({ ...plain, body: '{\n  "a": true,\n  "b": null,\n  "c": "x: true",\n  "d": [false, 1.5]\n}' })
+    assert.ok(code.includes('"a": True'), code)
+    assert.ok(code.includes('"b": None'), code)
+    assert.ok(code.includes('"c": "x: true"'), code)
+    assert.ok(/False,\s+1\.5/.test(code), code)
+  })
+}
